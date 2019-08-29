@@ -93,7 +93,7 @@ public class DataFrameInfoTransportAction extends XPackInfoFeatureTransportActio
                 statisticsList.add(0L);
             }
         }
-        return DataFrameIndexerTransformStats.withDefaultTransformId(statisticsList.get(0),  // numPages
+        return new DataFrameIndexerTransformStats(statisticsList.get(0),  // numPages
             statisticsList.get(1),  // numInputDocuments
             statisticsList.get(2),  // numOutputDocuments
             statisticsList.get(3),  // numInvocations
@@ -110,7 +110,7 @@ public class DataFrameInfoTransportAction extends XPackInfoFeatureTransportActio
             .filter(QueryBuilders.termQuery(DataFrameField.INDEX_DOC_TYPE.getPreferredName(),
                     DataFrameTransformStoredDoc.NAME)));
 
-        SearchRequestBuilder requestBuilder = client.prepareSearch(DataFrameInternalIndex.INDEX_NAME)
+        SearchRequestBuilder requestBuilder = client.prepareSearch(DataFrameInternalIndex.INDEX_NAME_PATTERN)
             .setSize(0)
             .setQuery(queryBuilder);
 
@@ -130,7 +130,7 @@ public class DataFrameInfoTransportAction extends XPackInfoFeatureTransportActio
             },
             failure -> {
                 if (failure instanceof ResourceNotFoundException) {
-                    statsListener.onResponse(DataFrameIndexerTransformStats.withDefaultTransformId());
+                    statsListener.onResponse(new DataFrameIndexerTransformStats());
                 } else {
                     statsListener.onFailure(failure);
                 }

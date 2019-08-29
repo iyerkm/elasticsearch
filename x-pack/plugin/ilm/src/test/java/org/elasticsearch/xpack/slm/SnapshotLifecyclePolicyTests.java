@@ -10,7 +10,7 @@ import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.test.AbstractSerializingTestCase;
-import org.elasticsearch.xpack.core.snapshotlifecycle.SnapshotLifecyclePolicy;
+import org.elasticsearch.xpack.core.slm.SnapshotLifecyclePolicy;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -56,7 +56,8 @@ public class SnapshotLifecyclePolicyTests extends AbstractSerializingTestCase<Sn
 
         ValidationException e = policy.validate();
         assertThat(e.validationErrors(),
-            containsInAnyOrder("invalid policy id [a,b]: must not contain ','",
+            containsInAnyOrder(
+                "invalid policy id [a,b]: must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]",
                 "invalid snapshot name [<my, snapshot-{now/M}>]: must not contain contain" +
                     " the following characters [ , \", *, \\, <, |, ,, >, /, ?]",
                 "invalid repository name [  ]: cannot be empty",

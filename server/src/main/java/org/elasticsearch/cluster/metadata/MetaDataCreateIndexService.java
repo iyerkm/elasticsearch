@@ -301,7 +301,10 @@ public class MetaDataCreateIndexService {
                 List<String> templateNames = new ArrayList<>();
 
                 for (Map.Entry<String, String> entry : request.mappings().entrySet()) {
-                    mappings.put(entry.getKey(), MapperService.parseMapping(xContentRegistry, entry.getValue()));
+                    Map<String, Object> mapping = MapperService.parseMapping(xContentRegistry, entry.getValue());
+                    assert mapping.size() == 1 : mapping;
+                    assert entry.getKey().equals(mapping.keySet().iterator().next()) : entry.getKey() + " != " + mapping;
+                    mappings.put(entry.getKey(), mapping);
                 }
 
                 final Index recoverFromIndex = request.recoverFrom();
@@ -705,9 +708,16 @@ public class MetaDataCreateIndexService {
         IndexMetaData.selectSplitShard(0, sourceMetaData, IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));
     }
 
-    private static IndexMetaData validateResize(ClusterState state, String sourceIndex,
-                                                Set<String> targetIndexMappingsTypes, String targetIndexName,
-                                                Settings targetIndexSettings) {
+    static void validateCloneIndex(ClusterState state, String sourceIndex,
+                                   Set<String> targetIndexMappingsTypes, String targetIndexName,
+                                   Settings targetIndexSettings) {
+        IndexMetaData sourceMetaData = validateResize(state, sourceIndex, targetIndexMappingsTypes, targetIndexName, targetIndexSettings);
+        IndexMetaData.selectCloneShard(0, sourceMetaData, IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));
+    }
+
+    static IndexMetaData validateResize(ClusterState state, String sourceIndex,
+                                        Set<String> targetIndexMappingsTypes, String targetIndexName,
+                                        Settings targetIndexSettings) {
         if (state.metaData().hasIndex(targetIndexName)) {
             throw new ResourceAlreadyExistsException(state.metaData().index(targetIndexName).getIndex());
         }
@@ -759,6 +769,9 @@ public class MetaDataCreateIndexService {
                 .put("index.allocation.max_retries", 1);
         } else if (type == ResizeType.SPLIT) {
             validateSplitIndex(currentState, resizeSourceIndex.getName(), mappingKeys, resizeIntoName, indexSettingsBuilder.build());
+            indexSettingsBuilder.putNull(initialRecoveryIdFilter);
+        } else if (type == ResizeType.CLONE) {
+            validateCloneIndex(currentState, resizeSourceIndex.getName(), mappingKeys, resizeIntoName, indexSettingsBuilder.build());
             indexSettingsBuilder.putNull(initialRecoveryIdFilter);
         } else {
             throw new IllegalStateException("unknown resize type is " + type);
